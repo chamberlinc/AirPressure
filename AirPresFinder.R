@@ -2,9 +2,12 @@ FindNearestAirPres <- function(lat, long, start.year, end.year) {
   require(geosphere)
   tf = tempfile()
   download.file("ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-history.txt",tf,mode="wb")
-  noaa.sites <- read.fwf(tf, skip = 22, header = F, widths = c(7,6,30, 5, 3, 6, 8, 9, 8, 9, 8), comment.char = "", col.names = c("USAF", "WBAN", "STATION NAME", "CTRY", "ST", "CALL", "LAT", "LON", "ELEV(M)", "BEGIN", "END"))
+  noaa.sites <- read.fwf(tf, skip = 22, header = F, widths = c(7,6,30, 5, 3, 6, 8, 9, 8, 9, 8), comment.char = "", col.names = c("USAF", "WBAN", "STATION NAME", "CTRY", "ST", "CALL", "LAT", "LON", "ELEV(M)", "BEGIN", "END"), flush = TRUE)
   noaa.sites <- na.omit(noaa.sites)
-  noaa.sites <- noaa.sites[noaa.sites$LAT < lat + 5 & noaa.sites$LAT > lat - 5 & noaa.sites$LON < long + 5 & noaa.sites$LON > long - 5, ]
+  noaa.sites <- noaa.sites %>%
+    mutate(LAT = as.numeric(as.character(LAT))) %>%
+    mutate(LON = as.numeric(as.character(LON))) %>%
+    filter(LAT < (lat + 5) & LAT > (lat - 5) & LON < (long + 5) & LON > (long - 5))  
   pt1 <- cbind(rep(long, length.out = length(noaa.sites$LAT)), rep(lat, length.out = length(noaa.sites$LAT)))
   pt2 <- cbind(noaa.sites$LON, noaa.sites$LAT)
   dist <- diag(distm(pt1, pt2, fun = distHaversine))/1000
@@ -77,9 +80,12 @@ FindandCollect_airpres <- function(lat, long, start_datetime, end_datetime) {
   require(zoo)
   tf = tempfile()
   download.file("ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-history.txt",tf,mode="wb")
-  noaa.sites <- read.fwf(tf, skip = 22, header = F, widths = c(7,6,30, 5, 3, 6, 8, 9, 8, 9, 8), comment.char = "", col.names = c("USAF", "WBAN", "STATION NAME", "CTRY", "ST", "CALL", "LAT", "LON", "ELEV(M)", "BEGIN", "END"))
+  noaa.sites <- read.fwf(tf, skip = 22, header = F, widths = c(7,6,30, 5, 3, 6, 8, 9, 8, 9, 8), comment.char = "", col.names = c("USAF", "WBAN", "STATION NAME", "CTRY", "ST", "CALL", "LAT", "LON", "ELEV(M)", "BEGIN", "END"), flush = TRUE)
   noaa.sites <- na.omit(noaa.sites)
-  noaa.sites <- noaa.sites[noaa.sites$LAT < lat + 5 & noaa.sites$LAT > lat - 5 & noaa.sites$LON < long + 5 & noaa.sites$LON > long - 5, ]
+  noaa.sites <- noaa.sites %>%
+    mutate(LAT = as.numeric(as.character(LAT))) %>%
+    mutate(LON = as.numeric(as.character(LON))) %>%
+    filter(LAT < (lat + 5) & LAT > (lat - 5) & LON < (long + 5) & LON > (long - 5))
   pt1 <- cbind(rep(long, length.out = length(noaa.sites$LAT)), rep(lat, length.out = length(noaa.sites$LAT)))
   pt2 <- cbind(noaa.sites$LON, noaa.sites$LAT)
   dist <- diag(distm(pt1, pt2, fun = distHaversine))/1000
@@ -93,10 +99,10 @@ FindandCollect_airpres <- function(lat, long, start_datetime, end_datetime) {
     k <- i
     available <- vector(mode = 'logical', length = length(yrs))
     USAF <- as.character(noaa.sites$USAF[i])
-    WBAN <- if(nchar(as.character(noaa.sites$WBAN[i])) == 5){
-      as.character(noaa.sites$WBAN[i])
+    if(nchar(as.character(noaa.sites$WBAN[i])) == 5){
+      WBAN <- as.character(noaa.sites$WBAN[i])
     } else {
-      paste0(0,as.character(noaa.sites$WBAN[i]))
+      WBAN <- paste0(0,as.character(noaa.sites$WBAN[i]))
     }
     y <- as.data.frame(matrix(NA, nrow = 1, ncol = 12))
     for(j in 1:length(yrs)){
@@ -131,4 +137,5 @@ FindandCollect_airpres <- function(lat, long, start_datetime, end_datetime) {
   print(noaa.sites[k,])
   return(select(xtmp, DateTime_UTC, air_kPa, air_temp))
 }
+
 
