@@ -1,5 +1,6 @@
-FindNearestAirPres <- function(lat, long, start.year, end.year) {
+FindNearestAirPres <- function(lat, long, start_datetime, end_datetime) {
   require(geosphere)
+  require(dplyr)
   tf = tempfile()
   download.file("ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-history.txt",tf,mode="wb")
   noaa.sites <- read.fwf(tf, skip = 22, header = F, widths = c(7,6,30, 5, 3, 6, 8, 9, 8, 9, 8), comment.char = "", col.names = c("USAF", "WBAN", "STATION NAME", "CTRY", "ST", "CALL", "LAT", "LON", "ELEV(M)", "BEGIN", "END"), flush = TRUE)
@@ -12,11 +13,11 @@ FindNearestAirPres <- function(lat, long, start.year, end.year) {
   pt2 <- cbind(noaa.sites$LON, noaa.sites$LAT)
   dist <- diag(distm(pt1, pt2, fun = distHaversine))/1000
   noaa.sites$dist_km <- dist
-  tmp <- which((as.numeric(substr(noaa.sites$END,1,4)) >= end.year) & as.numeric(substr(noaa.sites$BEGIN,1,4)) <= start.year)
+  tmp <- which((as.numeric(substr(noaa.sites$END,1,4)) >= as.numeric(substr(end_datetime, 1, 4))) & as.numeric(substr(noaa.sites$BEGIN,1,4)) <= as.numeric(substr(start_datetime, 1, 4)))
   noaa.sites <- noaa.sites[tmp,]
   noaa.sites <- noaa.sites[with(noaa.sites, order(dist_km)),]
   
-  yrs <- seq(start.year,end.year, 1)
+  yrs <- seq(as.numeric(substr(start_datetime, 1, 4)),as.numeric(substr(end_datetime, 1, 4)), by = 1)
   for (i in 1:length(noaa.sites$dist_km)) {
     k <- i
     available <- vector(mode = 'logical', length = length(yrs))
@@ -49,6 +50,7 @@ CollectNearestAirPres <- function(USAF, WBAN, start_datetime, end_datetime)  {
   require(readr)
   require(tibble)
   require(zoo)
+  require(dplyr)
   yrs <- seq(as.numeric(substr(start_datetime, 1, 4)),as.numeric(substr(end_datetime, 1, 4)), by = 1)
   y <- as.data.frame(matrix(NA, nrow = 1, ncol = 12))
   for(j in 1:length(yrs)){
@@ -78,6 +80,7 @@ FindandCollect_airpres <- function(lat, long, start_datetime, end_datetime) {
   require(readr)
   require(tibble)
   require(zoo)
+  require(dplyr)
   tf = tempfile()
   download.file("ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-history.txt",tf,mode="wb")
   noaa.sites <- read.fwf(tf, skip = 22, header = F, widths = c(7,6,30, 5, 3, 6, 8, 9, 8, 9, 8), comment.char = "", col.names = c("USAF", "WBAN", "STATION NAME", "CTRY", "ST", "CALL", "LAT", "LON", "ELEV(M)", "BEGIN", "END"), flush = TRUE)
@@ -137,5 +140,4 @@ FindandCollect_airpres <- function(lat, long, start_datetime, end_datetime) {
   print(noaa.sites[k,])
   return(select(xtmp, DateTime_UTC, air_kPa, air_temp))
 }
-
 
