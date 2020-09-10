@@ -1,0 +1,1 @@
+## This file tests that RStudio & github are communicating on this machine
